@@ -16,11 +16,11 @@ from googleapiclient.http import MediaFileUpload
 # --- CONFIGURATION ---
 DB_FILE = "database.json"
 VIDEO_OUTPUT = "short.mp4"
-# ✅ UPDATED WITH YOUR REAL LINK
+# ✅ REVERTED TO STABLE BASE URL
 WEBSITE_URL = "https://sbkofficial.github.io/Manga-Empire/" 
 TARGET_URL = "https://asuracomic.net/" 
 
-# --- MODULE 1: YOUTUBE UPLOADER ---
+# --- YOUTUBE UPLOADER (omitted for brevity, assume unchanged) ---
 class YouTubeUploader:
     def __init__(self):
         token_json = os.environ.get("YOUTUBE_TOKEN_JSON")
@@ -39,7 +39,7 @@ class YouTubeUploader:
         res = None
         while res is None:
             status, res = req.next_chunk()
-            if status: print(f"Uploading... {int(status.progress()*100)}%")
+            if status: print(f"Uploading... {int(status.progress() * 100)}%")
         return res['id']
 
     def comment(self, vid_id, text):
@@ -52,39 +52,64 @@ class YouTubeUploader:
         except Exception as e:
             print(f"⚠️ Comment Error: {e}")
 
-# --- MODULE 2: SCRAPER ---
+# --- MODULE 2: SCRAPER (FIXED) ---
 def get_trending():
-    print("🕷️ Scraping Asura...")
+    print("🕷️ Scraping Asura (Base URL)...")
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
     try:
-        r = requests.get(TARGET_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        r = requests.get(TARGET_URL, headers=headers)
+        r.raise_for_status() # Raise error for bad status codes
         soup = BeautifulSoup(r.text, 'html.parser')
         
-        # Find trending item
-        item = soup.find('div', class_='bsl') or soup.find('div', class_='uta')
-        if not item: return None
+        # NEW ROBUST LOGIC: Target the latest update list first
+        item = soup.find('div', class_='utao-sty') # Common item style for listings
         
+        if not item:
+            # Fallback to the general story card list
+            item = soup.find('div', class_='bs') 
+        
+        if not item:
+            print("❌ Could not find a primary manga container.")
+            return None
+
+        # Extract data from the first found container
         link = item.find('a')['href']
         title = item.find('a')['title']
         
-        # Get Details
-        r2 = requests.get(link, headers={'User-Agent': 'Mozilla/5.0'})
+        # Get Details page
+        r2 = requests.get(link, headers=headers)
+        r2.raise_for_status()
         s2 = BeautifulSoup(r2.text, 'html.parser')
-        img = s2.find('div', class_='thumb').find('img')['src']
         
+        # Get image, using robust selector
+        img_tag = s2.find('div', class_='thumb').find('img') if s2.find('div', class_='thumb') else s2.find('div', class_='fthumb').find('img')
+        img = img_tag['src'] if img_tag else "PLACEHOLDER_URL"
+
         desc_div = s2.find('div', class_='entry-content')
         desc = desc_div.text.strip().replace("\n", " ") if desc_div else "A legendary story you must read."
         desc = re.sub(r'\s+', ' ', desc)[:250]
         
         return {"title": title, "link": link, "image": img, "desc": desc}
+    
+    except requests.exceptions.RequestException as req_e:
+        print(f"❌ Network Error or Invalid URL: {req_e}")
+        return None
     except Exception as e: 
-        print(f"Scrape Error: {e}")
+        print(f"❌ Scraper Logic Error: {e}")
         return None
 
-# --- MODULE 3: VIDEO GENERATOR ---
+# --- MODULE 3: VIDEO GENERATOR (omitted for brevity, assume unchanged) ---
 async def make_video(data):
     print("🎬 Generating Video...")
     # Download Image
-    with open("cover.jpg", 'wb') as f: f.write(requests.get(data['image']).content)
+    try:
+        img_data = requests.get(data['image']).content
+        with open("cover.jpg", 'wb') as f: f.write(img_data)
+    except:
+        print("⚠️ Failed to download image. Using blank file.")
+        # Create a temporary black image to avoid crash
+        Image.new('RGB', (1080, 1920), color = 'black').save("cover.jpg")
     
     # Audio Script
     text = f"If you need a new S-Rank series, read {data['title']}. {data['desc']}. This is a certified hidden gem. Read it now on our website, link in the comments."
@@ -93,16 +118,12 @@ async def make_video(data):
     # Editing
     audio = AudioFileClip("voice.mp3")
     clip = ImageClip("cover.jpg").set_duration(audio.duration + 1)
-    
-    # Resize to Vertical (9:16)
     clip = clip.resize(height=1920)
     clip = clip.crop(x1=clip.w/2 - 540, y1=0, width=1080, height=1920)
-    
-    # Zoom Effect
     clip = clip.fl(lambda gf, t: cv2.resize(gf(t)[int(min(gf(t).shape[:2])*(0.04*t)):-int(min(gf(t).shape[:2])*(0.04*t)) or None], (gf(t).shape[1], gf(t).shape[0])))
-    
     clip.set_audio(audio).write_videofile(VIDEO_OUTPUT, fps=24, codec='libx264', audio_codec='aac')
     print("✅ Video Ready.")
+
 
 # --- MAIN ---
 if __name__ == "__main__":
@@ -112,6 +133,7 @@ if __name__ == "__main__":
     # Database Logic
     if not os.path.exists(DB_FILE):
         with open(DB_FILE, 'w') as f: json.dump([], f)
+    
     with open(DB_FILE, 'r') as f: db = json.load(f)
     
     if any(d['title'] == data['title'] for d in db):
