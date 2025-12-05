@@ -20,6 +20,15 @@ VIDEO_OUTPUT = "short.mp4"
 WEBSITE_URL = "https://sbkofficial.github.io/Manga-Empire/" 
 TARGET_URL = "https://asuracomic.net/" 
 
+# --- NEW: ROTATING USER AGENTS TO PREVENT 403 ERROR ---
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.57',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15',
+]
+
 # --- YOUTUBE UPLOADER (omitted for brevity, assume unchanged) ---
 class YouTubeUploader:
     def __init__(self):
@@ -55,7 +64,8 @@ class YouTubeUploader:
 # --- MODULE 2: SCRAPER (FIXED) ---
 def get_trending():
     print("🕷️ Scraping Asura (Base URL)...")
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    # Use a random User-Agent for this request
+    headers = {'User-Agent': random.choice(USER_AGENTS)}
     
     try:
         r = requests.get(TARGET_URL, headers=headers)
@@ -77,8 +87,8 @@ def get_trending():
         link = item.find('a')['href']
         title = item.find('a')['title']
         
-        # Get Details page
-        r2 = requests.get(link, headers=headers)
+        # Get Details page (Use another random User-Agent)
+        r2 = requests.get(link, headers={'User-Agent': random.choice(USER_AGENTS)})
         r2.raise_for_status()
         s2 = BeautifulSoup(r2.text, 'html.parser')
         
@@ -121,7 +131,7 @@ async def make_video(data):
     clip = clip.resize(height=1920)
     clip = clip.crop(x1=clip.w/2 - 540, y1=0, width=1080, height=1920)
     clip = clip.fl(lambda gf, t: cv2.resize(gf(t)[int(min(gf(t).shape[:2])*(0.04*t)):-int(min(gf(t).shape[:2])*(0.04*t)) or None], (gf(t).shape[1], gf(t).shape[0])))
-    clip.set_audio(audio).write_videofile(VIDEO_OUTPUT, fps=24, codec='libx264', audio_codec='aac')
+    clip.set_audio(audio).write_videofile(VIDEO_OUTPUT, fps=24, codec='libx64', audio_codec='aac')
     print("✅ Video Ready.")
 
 
