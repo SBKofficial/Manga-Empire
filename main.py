@@ -17,7 +17,7 @@ from googleapiclient.http import MediaFileUpload
 DB_FILE = "database.json"
 VIDEO_OUTPUT = "short.mp4"
 # ⚠️ REPLACE THIS WITH YOUR GITHUB PAGES LINK
-WEBSITE_URL = "https://YOUR_USERNAME.github.io/manga-empire/" 
+WEBSITE_URL = "https://sbkofficial.github.io/Manga-Empire/" 
 TARGET_URL = "https://asuracomic.net/" 
 
 # --- MODULE 1: YOUTUBE UPLOADER ---
