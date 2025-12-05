@@ -5,10 +5,10 @@ import random
 import asyncio
 import re
 import time
+import cv2
 from bs4 import BeautifulSoup
 import edge_tts
 from moviepy.editor import *
-from moviepy.video.fx.all import resize, crop
 import googleapiclient.discovery
 from google.oauth2.credentials import Credentials
 from googleapiclient.http import MediaFileUpload
@@ -16,7 +16,7 @@ from googleapiclient.http import MediaFileUpload
 # --- CONFIGURATION ---
 DB_FILE = "database.json"
 VIDEO_OUTPUT = "short.mp4"
-# ⚠️ REPLACE THIS WITH YOUR GITHUB PAGES LINK
+# ✅ UPDATED WITH YOUR REAL LINK
 WEBSITE_URL = "https://sbkofficial.github.io/Manga-Empire/" 
 TARGET_URL = "https://asuracomic.net/" 
 
@@ -109,16 +109,10 @@ if __name__ == "__main__":
     data = get_trending()
     if not data: exit()
     
-    # --- FIXED SECTION START ---
-    # Create DB if it doesn't exist
+    # Database Logic
     if not os.path.exists(DB_FILE):
-        with open(DB_FILE, 'w') as f:
-            json.dump([], f)
-    
-    # Read DB
-    with open(DB_FILE, 'r') as f:
-        db = json.load(f)
-    # --- FIXED SECTION END ---
+        with open(DB_FILE, 'w') as f: json.dump([], f)
+    with open(DB_FILE, 'r') as f: db = json.load(f)
     
     if any(d['title'] == data['title'] for d in db):
         print("⚠️ Already done today.")
