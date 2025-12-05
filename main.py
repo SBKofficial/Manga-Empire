@@ -109,9 +109,16 @@ if __name__ == "__main__":
     data = get_trending()
     if not data: exit()
     
-    # Database Logic
-    if not os.path.exists(DB_FILE): with open(DB_FILE, 'w') as f: json.dump([], f)
-    with open(DB_FILE, 'r') as f: db = json.load(f)
+    # --- FIXED SECTION START ---
+    # Create DB if it doesn't exist
+    if not os.path.exists(DB_FILE):
+        with open(DB_FILE, 'w') as f:
+            json.dump([], f)
+    
+    # Read DB
+    with open(DB_FILE, 'r') as f:
+        db = json.load(f)
+    # --- FIXED SECTION END ---
     
     if any(d['title'] == data['title'] for d in db):
         print("⚠️ Already done today.")
