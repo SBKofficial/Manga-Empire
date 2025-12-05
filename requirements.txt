@@ -1,6 +1,7 @@
 requests
 beautifulsoup4
-moviepy
+moviepy==1.0.3
+decorator==4.4.2
 edge-tts
 opencv-python-headless
 asyncio
